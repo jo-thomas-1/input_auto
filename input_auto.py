@@ -1,11 +1,12 @@
 import tkinter as tk
 from pynput.mouse import Listener, Button, Controller
+import threading
 
 class MouseAutoGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Mouse Auto")
-        
+
         self.is_recording = False
         self.record_button = None
         self.text_area = None
@@ -33,6 +34,9 @@ class MouseAutoGUI:
         self.recorded_actions = []
         self.text_area.delete('1.0', tk.END)
         
+        threading.Thread(target=self.start_listener).start()
+        
+    def start_listener(self):
         with Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll) as listener:
             listener.join()
             
