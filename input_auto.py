@@ -1,4 +1,7 @@
 import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk, ImageOps
+from PIL.ImageTk import PhotoImage
 from pynput.mouse import Listener, Button, Controller
 from pynput.keyboard import Listener as KeyboardListener, KeyCode
 import threading
@@ -19,29 +22,38 @@ class InputAutoGUI:
         self.setup_ui()
         
     def setup_ui(self):
-        self.setup_source_section()
+        source_frame = tk.Frame(self.root)
+        source_frame.pack(padx=10, pady=10, anchor=tk.W)
+
+        self.setup_source_section(source_frame)
         
-        self.record_button = tk.Button(self.root, text="Record", command=self.toggle_recording)
-        self.record_button.pack(pady=10)
+        self.record_button = tk.Button(self.root, text="Record", command=self.toggle_recording, relief=tk.RAISED, compound=tk.LEFT)
+        self.record_button.pack(pady=10, padx=10, anchor=tk.W)
+        self.set_record_button_icon("record")
         
         self.text_area = tk.Text(self.root, height=10, width=50)
-        self.text_area.pack(padx=10, pady=5)
+        self.text_area.pack(padx=10, pady=5, anchor=tk.W)
         
-    def setup_source_section(self):
-        source_frame = tk.Frame(self.root)
-        source_frame.pack(padx=10, pady=10)
+    def setup_source_section(self, frame):
+        source_frame = tk.LabelFrame(frame, text="Source", padx=10, pady=10)
+        source_frame.pack(padx=0, pady=10, anchor=tk.W)
         
         for index, (device, value) in enumerate(self.available_devices.items()):
             checkbox = tk.Checkbutton(source_frame, text=device, variable=self.available_devices[device], onvalue=True, offvalue=False)
-            checkbox.grid(row=0, column=index, padx=5)
+            checkbox.grid(row=0, column=index, padx=5, sticky=tk.W)
             self.checkboxes[device] = checkbox
         
     def toggle_recording(self):
         if not self.is_recording:
-            self.record_button.config(text="Stop Recording")
-            self.start_recording()
+            if any(self.available_devices.values()):
+                self.record_button.config(text="Stop Recording", relief=tk.SUNKEN)
+                self.set_record_button_icon("stop")
+                self.start_recording()
+            else:
+                self.show_error_message("Please select at least one input source.")
         else:
-            self.record_button.config(text="Record")
+            self.record_button.config(text="Record", relief=tk.RAISED)
+            self.set_record_button_icon("record")
             self.stop_recording()
             
     def start_recording(self):
@@ -61,6 +73,7 @@ class InputAutoGUI:
         self.is_recording = False
         
     def on_move(self, x, y):
+        pass
         if self.is_recording and self.available_devices['Mouse']:
             pass
         
@@ -88,6 +101,24 @@ class InputAutoGUI:
         self.text_area.delete('1.0', tk.END)
         for action in self.recorded_actions:
             self.text_area.insert(tk.END, action + '\n')
+            
+    def show_error_message(self, message):
+        messagebox.showerror("Error", message)
+        
+    def set_record_button_icon(self, icon):
+        if icon == "record":
+            image = Image.open("record.png")
+            self.record_button.config(text="Record")
+        elif icon == "stop":
+            image = Image.open("stop.png")
+            self.record_button.config(text="Stop")
+        else:
+            return
+        
+        image = ImageOps.fit(image, (15, 15), Image.Resampling.LANCZOS)
+        photo = PhotoImage(image)
+        self.record_button.config(image=photo, compound=tk.LEFT, padx=5)
+        self.record_button.image = photo
 
 if __name__ == "__main__":
     root = tk.Tk()
