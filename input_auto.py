@@ -16,7 +16,7 @@ class InputAutoGUI:
         self.text_area = None
         self.recorded_actions = []
 
-        self.available_devices = {'Mouse': False, 'Keyboard': False}
+        self.available_devices = {'Mouse': tk.BooleanVar(), 'Keyboard': tk.BooleanVar()}
         self.checkboxes = {}
         
         self.setup_ui()
@@ -36,16 +36,16 @@ class InputAutoGUI:
         
     def setup_source_section(self, frame):
         source_frame = tk.LabelFrame(frame, text="Source", padx=10, pady=10)
-        source_frame.pack(padx=0, pady=10, anchor=tk.W)
+        source_frame.pack(padx=0, pady=0, anchor=tk.W)
         
         for index, (device, value) in enumerate(self.available_devices.items()):
-            checkbox = tk.Checkbutton(source_frame, text=device, variable=self.available_devices[device], onvalue=True, offvalue=False)
+            checkbox = tk.Checkbutton(source_frame, text=device, variable=value, onvalue=True, offvalue=False)
             checkbox.grid(row=0, column=index, padx=5, sticky=tk.W)
             self.checkboxes[device] = checkbox
         
     def toggle_recording(self):
         if not self.is_recording:
-            if any(self.available_devices.values()):
+            if any(value.get() for value in self.available_devices.values()):
                 self.record_button.config(text="Stop Recording", relief=tk.SUNKEN)
                 self.set_record_button_icon("stop")
                 self.start_recording()
@@ -73,24 +73,24 @@ class InputAutoGUI:
         self.is_recording = False
         
     def on_move(self, x, y):
-        pass
-        if self.is_recording and self.available_devices['Mouse']:
-            pass
+        if self.is_recording and self.available_devices['Mouse'].get():
+            self.recorded_actions.append(f"Move - {x}, {y}")
+            self.update_text_area()
         
     def on_click(self, x, y, button, pressed):
-        if self.is_recording and self.available_devices['Mouse']:
+        if self.is_recording and self.available_devices['Mouse'].get():
             action = "Click" if pressed else "Release"
             self.recorded_actions.append(f"{action} - {x}, {y}")
             self.update_text_area()
             
     def on_scroll(self, x, y, dx, dy):
-        if self.is_recording and self.available_devices['Mouse']:
+        if self.is_recording and self.available_devices['Mouse'].get():
             action = "Scroll Up" if dy > 0 else "Scroll Down"
             self.recorded_actions.append(f"{action} - {x}, {y}")
             self.update_text_area()
             
     def on_key_press(self, key):
-        if self.is_recording and self.available_devices['Keyboard']:
+        if self.is_recording and self.available_devices['Keyboard'].get():
             if hasattr(key, 'char'):
                 self.recorded_actions.append(f"Key Press - {key.char}")
             else:
