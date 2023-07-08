@@ -15,11 +15,14 @@ class InputAutoGUI:
         self.record_button = None
         self.text_area = None
         self.recorded_actions = []
+        self.mouse_listener = None
+        self.keyboard_listener = None
 
         self.available_devices = {'Mouse': tk.BooleanVar(), 'Keyboard': tk.BooleanVar()}
         self.checkboxes = {}
         
         self.setup_ui()
+        self.root.protocol("WM_DELETE_WINDOW", self.cleanup)
         
     def setup_ui(self):
         source_frame = tk.Frame(self.root)
@@ -27,10 +30,16 @@ class InputAutoGUI:
 
         self.setup_source_section(source_frame)
         
-        self.record_button = tk.Button(self.root, text="Record", command=self.toggle_recording, relief=tk.RAISED, compound=tk.LEFT)
-        self.record_button.pack(pady=10, padx=10, anchor=tk.W)
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(pady=10, padx=10, anchor=tk.W)
+
+        self.record_button = tk.Button(button_frame, text="Record", command=self.toggle_recording, relief=tk.RAISED, compound=tk.LEFT)
+        self.record_button.pack(side=tk.LEFT, padx=5)
         self.set_record_button_icon("record")
-        
+
+        self.clear_button = tk.Button(button_frame, text="Clear", command=self.clear_actions, relief=tk.RAISED, compound=tk.LEFT)
+        self.clear_button.pack(side=tk.LEFT, padx=5)
+
         self.text_area = tk.Text(self.root, height=10, width=50)
         self.text_area.pack(padx=10, pady=5, anchor=tk.W)
         
@@ -61,7 +70,11 @@ class InputAutoGUI:
         self.recorded_actions = []
         self.text_area.delete('1.0', tk.END)
         
-        threading.Thread(target=self.start_listener).start()
+        self.mouse_listener = Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll)
+        self.keyboard_listener = KeyboardListener(on_press=self.on_key_press)
+        
+        self.mouse_listener.start()
+        self.keyboard_listener.start()
         
     def start_listener(self):
         with Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll) as mouse_listener, \
@@ -71,6 +84,8 @@ class InputAutoGUI:
             
     def stop_recording(self):
         self.is_recording = False
+        self.mouse_listener.stop()
+        self.keyboard_listener.stop()
         
     def on_move(self, x, y):
         if self.is_recording and self.available_devices['Mouse'].get():
@@ -91,10 +106,7 @@ class InputAutoGUI:
             
     def on_key_press(self, key):
         if self.is_recording and self.available_devices['Keyboard'].get():
-            if hasattr(key, 'char'):
-                self.recorded_actions.append(f"Key Press - {key.char}")
-            else:
-                self.recorded_actions.append(f"Key Press - {key}")
+            self.recorded_actions.append(f"Key Press - {key}")
             self.update_text_area()
             
     def update_text_area(self):
@@ -119,6 +131,22 @@ class InputAutoGUI:
         photo = PhotoImage(image)
         self.record_button.config(image=photo, compound=tk.LEFT, padx=5)
         self.record_button.image = photo
+
+    def clear_actions(self):
+        self.recorded_actions = []
+        self.update_text_area()
+
+    def update_text_area(self):
+        self.text_area.delete('1.0', tk.END)
+        for action in self.recorded_actions:
+            self.text_area.insert(tk.END, action + '\n')
+
+    def cleanup(self):
+        if self.is_recording:
+            self.stop_recording()
+            self.mouse_listener.join()
+            self.keyboard_listener.join()
+        self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
