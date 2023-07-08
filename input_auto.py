@@ -5,6 +5,7 @@ from PIL.ImageTk import PhotoImage
 from pynput.mouse import Listener, Button, Controller
 from pynput.keyboard import Listener as KeyboardListener, KeyCode
 import threading
+import time
 
 class InputAutoGUI:
     def __init__(self, root):
@@ -170,18 +171,31 @@ class InputAutoGUI:
         self.recorded_actions = []
         self.update_text_area()
 
+        self.current_loop_var.set(0)
+        self.remaining_loops_var.set(0)
+
     def update_text_area(self):
         self.text_area.delete('1.0', tk.END)
         for action in self.recorded_actions:
             self.text_area.insert(tk.END, action + '\n')
 
-        # Update Current loop and Remaining loops values
-        self.current_loop_var.set(current_loop_value)
-        self.remaining_loops_var.set(remaining_loops_value)
-
     def start_loop(self):
         count = self.count_var.get()
-        # Perform loop operation using the 'count' value
+        
+        self.current_loop_var.set(0)
+        self.remaining_loops_var.set(count)
+
+        for i in range(count):
+            self.current_loop_var.set(i + 1)
+            self.remaining_loops_var.set(count - (i + 1))
+            self.root.update_idletasks()
+            self.perform_recorded_steps()
+            time.sleep(1)
+
+    def perform_recorded_steps(self):
+        for action in self.recorded_actions:
+            # Perform each recorded action
+            print(action)
 
     def cleanup(self):
         if self.is_recording:
