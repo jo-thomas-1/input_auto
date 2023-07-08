@@ -232,7 +232,7 @@ class InputAutoGUI:
         print("executing loop")
 
         for i in range(count):
-            time.sleep(1)
+            time.sleep(0.2)
             if self.should_terminate:
                 break
             self.current_loop_var.set(i + 1)
