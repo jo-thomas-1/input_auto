@@ -193,4 +193,5 @@ class InputAutoGUI:
 if __name__ == "__main__":
     root = tk.Tk()
     app = InputAutoGUI(root)
+    root.resizable(False, False)
     root.mainloop()
