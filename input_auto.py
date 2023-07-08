@@ -3,7 +3,7 @@ from tkinter import messagebox
 from PIL import Image, ImageTk, ImageOps
 from PIL.ImageTk import PhotoImage
 from pynput.mouse import Listener, Button, Controller
-from pynput.keyboard import Listener as KeyboardListener, KeyCode
+from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, KeyCode, Key
 import threading
 import time
 
@@ -21,6 +21,9 @@ class InputAutoGUI:
 
         self.available_devices = {'Mouse': tk.BooleanVar(), 'Keyboard': tk.BooleanVar()}
         self.checkboxes = {}
+
+        self.run_loop_thread = None
+        self.should_terminate = False
         
         self.setup_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.cleanup)
@@ -86,6 +89,21 @@ class InputAutoGUI:
             checkbox = tk.Checkbutton(source_frame, text=device, variable=value, onvalue=True, offvalue=False)
             checkbox.grid(row=0, column=index, padx=5, sticky=tk.W)
             self.checkboxes[device] = checkbox
+
+    def set_record_button_icon(self, icon):
+        if icon == "record":
+            image = Image.open("record.png")
+            self.record_button.config(text="Record")
+        elif icon == "stop":
+            image = Image.open("stop.png")
+            self.record_button.config(text="Stop")
+        else:
+            return
+        
+        image = ImageOps.fit(image, (15, 15), Image.Resampling.LANCZOS)
+        photo = PhotoImage(image)
+        self.record_button.config(image=photo, compound=tk.LEFT, padx=5)
+        self.record_button.image = photo
         
     def toggle_recording(self):
         if not self.is_recording:
@@ -121,6 +139,12 @@ class InputAutoGUI:
         self.is_recording = False
         self.mouse_listener.stop()
         self.keyboard_listener.stop()
+
+        # remove stop button click from recorded actions
+        if self.recorded_actions[-1].startswith('Release'):
+            self.recorded_actions.pop()
+            self.recorded_actions.pop()
+            self.update_text_area()
         
     def on_move(self, x, y):
         if self.is_recording and self.available_devices['Mouse'].get():
@@ -151,21 +175,6 @@ class InputAutoGUI:
             
     def show_error_message(self, message):
         messagebox.showerror("Error", message)
-        
-    def set_record_button_icon(self, icon):
-        if icon == "record":
-            image = Image.open("record.png")
-            self.record_button.config(text="Record")
-        elif icon == "stop":
-            image = Image.open("stop.png")
-            self.record_button.config(text="Stop")
-        else:
-            return
-        
-        image = ImageOps.fit(image, (15, 15), Image.Resampling.LANCZOS)
-        photo = PhotoImage(image)
-        self.record_button.config(image=photo, compound=tk.LEFT, padx=5)
-        self.record_button.image = photo
 
     def clear_actions(self):
         self.recorded_actions = []
@@ -184,18 +193,111 @@ class InputAutoGUI:
         
         self.current_loop_var.set(0)
         self.remaining_loops_var.set(count)
+        self.root.update_idletasks()
+
+        self.should_terminate = False  # Reset the termination flag
+        self.run_loop_thread = threading.Thread(target=self.run_loop, args=(count,))
+        self.run_loop_thread.start()
+
+    def stop_loop(self):
+        self.should_terminate = True
+
+        # Terminate the run_loop thread if it is running
+        if self.run_loop_thread is not None and self.run_loop_thread.is_alive():
+            self.run_loop_thread.terminate()
+
+        # Stop the keyboard listener if it is running
+        if self.keyboard_listener is not None and self.keyboard_listener.is_alive():
+            self.keyboard_listener.stop()
+
+        if not self.run_loop_thread.is_alive():
+            print("loop terminated")
+            print("current loop:", self.current_loop_var.get())
+            print("remaining loops:", self.remaining_loops_var.get())
+
+            messagebox.showinfo("Information", "Input action loop terminated")
+
+    def on_esc_key_press(self, key):
+        print("command: escape input loop")
+        if key == Key.esc:
+            self.stop_loop()
+
+    def run_loop(self, count):
+        keyboard_listener = Listener(on_press=self.on_esc_key_press)
+        keyboard_listener.start()
+
+        messagebox.showwarning("Warning", "Starting input loop execution. Please avoid using input devices \
+            until loop completion. Press the Escape (Esc) key to exit the loop.")
+
+        print("executing loop")
 
         for i in range(count):
+            time.sleep(1)
+            if self.should_terminate:
+                break
             self.current_loop_var.set(i + 1)
-            self.remaining_loops_var.set(count - (i + 1))
+            self.remaining_loops_var.set(count - i - 1)
             self.root.update_idletasks()
             self.perform_recorded_steps()
-            time.sleep(1)
+
+        print("input action loop completed")
+
+        messagebox.showinfo("Information", "Input action loop completed")
 
     def perform_recorded_steps(self):
+        mouse = Controller()
+        keyboard = KeyboardController()
+
         for action in self.recorded_actions:
-            # Perform each recorded action
-            print(action)
+            # Remove leading/trailing whitespace and split the action into components
+            components = action.strip().split('-')
+
+            if len(components) < 2:
+                continue
+
+            command = components[0].strip()
+            args = components[1].strip()
+
+            if command.startswith('\\'):
+                # check and execute special command
+                continue
+            else:
+                if command == 'Click':
+                    x, y = map(int, args.split(','))
+                    mouse.position = (x, y)
+                    mouse.click(Button.left)
+                elif command == 'Release':
+                    x, y = map(int, args.split(','))
+                    mouse.position = (x, y)
+                    mouse.release(Button.left)
+                elif command == 'Scroll Up':
+                    x, y = map(int, args.split(','))
+                    mouse.position = (x, y)
+                    mouse.scroll(0, -1)
+                elif command == 'Scroll Down':
+                    x, y = map(int, args.split(','))
+                    mouse.position = (x, y)
+                    mouse.scroll(0, 1)
+                elif command == 'Key Press':
+                    print("key press -", args)
+                    if args.startswith('<') and args.endswith('>'):
+                        print("key press <>")
+                        special_key = KeyCode.from_vk(int(args[1:-1]))
+                        keyboard.press(special_key)
+                        keyboard.release(special_key)
+                    elif args.startswith('Key.'):
+                        print("args")
+                        keyboard.press(eval(args))
+                        keyboard.release(eval(args))
+                    # Add more special key cases as needed
+                    else:
+                        # Handle normal characters
+                        try:
+                            keyboard.type(args[1])
+                        except Exception as e:
+                            keyboard.type('-')
+
+            time.sleep(0.1)
 
     def cleanup(self):
         if self.is_recording:
