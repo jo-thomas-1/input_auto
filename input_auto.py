@@ -64,8 +64,8 @@ class InputAutoGUI:
         count_entry = tk.Spinbox(row1, from_=1, to=50, width=3, textvariable=self.count_var)
         count_entry.pack(side=tk.LEFT, padx=5)
 
-        loop_button = tk.Button(row1, text="Loop", command=self.start_loop)
-        loop_button.pack(side=tk.LEFT, padx=5)
+        self.loop_button = tk.Button(row1, text="Loop", command=self.start_loop)
+        self.loop_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2: Current Loop
         row2 = tk.Frame(loop_section)
@@ -198,6 +198,9 @@ class InputAutoGUI:
             self.text_area.insert(tk.END, action + '\n')
 
     def start_loop(self):
+        # disable loop button to avoid multiple loop threads
+        self.loop_button.config(state='disabled')
+
         count = self.count_var.get()
         
         self.current_loop_var.set(0)
@@ -223,6 +226,7 @@ class InputAutoGUI:
             print("remaining loops:", self.remaining_loops_var.get())
 
             messagebox.showinfo("Information", "Input action loop terminated")
+            self.loop_button.config(state='normal')
 
     # check keyboard inputs that occur during the automated input loop
     def check_keyboard_press(self):
@@ -250,6 +254,7 @@ class InputAutoGUI:
         print("input action loop completed")
 
         messagebox.showinfo("Information", "Input action loop completed")
+        self.loop_button.config(state='normal')
 
     def perform_recorded_steps(self):
         mouse = Controller()
