@@ -181,6 +181,7 @@ class InputAutoGUI:
     def sync_edited_actions(self):
         edited_content = self.text_area.get('1.0', tk.END).strip()
         self.recorded_actions = edited_content.split('\n')
+        messagebox.showinfo("Information", "Input actions updated")
 
     def clear_actions(self):
         self.recorded_actions = []
