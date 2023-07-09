@@ -39,11 +39,13 @@ class InputAutoGUI:
 
         self.record_button = tk.Button(button_frame, text="Record", command=self.toggle_recording, relief=tk.RAISED, compound=tk.LEFT)
         self.record_button.pack(side=tk.LEFT, padx=5)
+        self.set_record_button_icon("record")
 
         self.clear_button = tk.Button(button_frame, text="Clear", command=self.clear_actions, relief=tk.RAISED, compound=tk.LEFT)
         self.clear_button.pack(side=tk.LEFT, padx=5)
 
-        self.set_record_button_icon("record")
+        self.sync_button = tk.Button(button_frame, text="Sync Edits", command=self.sync_edited_actions, relief=tk.RAISED, compound=tk.LEFT)
+        self.sync_button.pack(side=tk.LEFT, padx=5)
 
         self.text_area = tk.Text(self.root, height=10, width=50)
         self.text_area.pack(padx=10, pady=5, anchor=tk.W, fill=tk.X)
@@ -176,6 +178,10 @@ class InputAutoGUI:
     def show_error_message(self, message):
         messagebox.showerror("Error", message)
 
+    def sync_edited_actions(self):
+        edited_content = self.text_area.get('1.0', tk.END).strip()
+        self.recorded_actions = edited_content.split('\n')
+
     def clear_actions(self):
         self.recorded_actions = []
         self.update_text_area()
@@ -232,7 +238,7 @@ class InputAutoGUI:
         print("executing loop")
 
         for i in range(count):
-            time.sleep(0.2)
+            time.sleep(0.1)
             if self.should_terminate:
                 break
             self.current_loop_var.set(i + 1)
