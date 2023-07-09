@@ -4,6 +4,7 @@ from PIL import Image, ImageTk, ImageOps
 from PIL.ImageTk import PhotoImage
 from pynput.mouse import Listener, Button, Controller
 from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, KeyCode, Key
+import keyboard as kb_lib
 import threading
 import time
 
@@ -24,6 +25,7 @@ class InputAutoGUI:
 
         self.run_loop_thread = None
         self.should_terminate = False
+        self.keyboard_check_thread = None
         
         self.setup_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.cleanup)
@@ -204,6 +206,8 @@ class InputAutoGUI:
 
         self.should_terminate = False  # Reset the termination flag
         self.run_loop_thread = threading.Thread(target=self.run_loop, args=(count,))
+        self.keyboard_check_thread = threading.Thread(target=self.check_keyboard_press)
+        self.keyboard_check_thread.start()
         self.run_loop_thread.start()
 
     def stop_loop(self):
@@ -211,11 +215,7 @@ class InputAutoGUI:
 
         # Terminate the run_loop thread if it is running
         if self.run_loop_thread is not None and self.run_loop_thread.is_alive():
-            self.run_loop_thread.terminate()
-
-        # Stop the keyboard listener if it is running
-        if self.keyboard_listener is not None and self.keyboard_listener.is_alive():
-            self.keyboard_listener.stop()
+            self.run_loop_thread.join()
 
         if not self.run_loop_thread.is_alive():
             print("loop terminated")
@@ -224,15 +224,15 @@ class InputAutoGUI:
 
             messagebox.showinfo("Information", "Input action loop terminated")
 
-    def on_esc_key_press(self, key):
-        print("command: escape input loop")
-        if key == Key.esc:
-            self.stop_loop()
+    # check keyboard inputs that occur during the automated input loop
+    def check_keyboard_press(self):
+        print("keybard listening for esc")
+        while not self.should_terminate:
+            if kb_lib.is_pressed('esc'):
+                self.stop_loop()
+                break
 
     def run_loop(self, count):
-        keyboard_listener = Listener(on_press=self.on_esc_key_press)
-        keyboard_listener.start()
-
         messagebox.showwarning("Warning", "Starting input loop execution. Please avoid using input devices \
             until loop completion. Press the Escape (Esc) key to exit the loop.")
 
@@ -241,7 +241,7 @@ class InputAutoGUI:
         for i in range(count):
             time.sleep(0.1)
             if self.should_terminate:
-                break
+                return 0
             self.current_loop_var.set(i + 1)
             self.remaining_loops_var.set(count - i - 1)
             self.root.update_idletasks()
@@ -256,6 +256,9 @@ class InputAutoGUI:
         keyboard = KeyboardController()
 
         for action in self.recorded_actions:
+            if self.should_terminate:
+                return 0
+
             # Remove leading/trailing whitespace and split the action into components
             components = action.strip().split('-')
 
@@ -264,6 +267,10 @@ class InputAutoGUI:
 
             command = components[0].strip()
             args = components[1].strip()
+
+            for component in components:
+                print(component, end="")
+            print("\n", end="")
 
             if command.startswith('\\'):
                 # check and execute special command
@@ -286,14 +293,11 @@ class InputAutoGUI:
                     mouse.position = (x, y)
                     mouse.scroll(0, 1)
                 elif command == 'Key Press':
-                    print("key press -", args)
                     if args.startswith('<') and args.endswith('>'):
-                        print("key press <>")
                         special_key = KeyCode.from_vk(int(args[1:-1]))
                         keyboard.press(special_key)
                         keyboard.release(special_key)
                     elif args.startswith('Key.'):
-                        print("args")
                         keyboard.press(eval(args))
                         keyboard.release(eval(args))
                     # Add more special key cases as needed
