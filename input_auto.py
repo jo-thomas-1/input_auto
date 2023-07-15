@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from PIL import Image, ImageTk, ImageOps
 from PIL.ImageTk import PhotoImage
 from pynput.mouse import Listener, Button, Controller
@@ -26,6 +26,8 @@ class InputAutoGUI:
         self.run_loop_thread = None
         self.should_terminate = False
         self.keyboard_check_thread = None
+        self.status_bar = None
+        self.coordinates = None
         
         self.setup_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.cleanup)
@@ -84,6 +86,44 @@ class InputAutoGUI:
         remaining_loops_label.pack(side=tk.LEFT)
         remaining_loops_value = tk.Label(row3, textvariable=self.remaining_loops_var)
         remaining_loops_value.pack(side=tk.LEFT)
+
+        # Create the status bar
+        self.status_bar = ttk.Frame(root, relief=tk.FLAT)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Create the Git link label
+        self.git_link = ttk.Label(self.status_bar, text="GitHub", width=12, cursor="hand2", relief=tk.SUNKEN, \
+            anchor='center', foreground='blue', font=('TkDefaultFont', 8, 'bold'))
+        self.git_link.pack(side=tk.LEFT, padx=(0, 0))
+        self.git_link.bind("<Button-1>", lambda e: self.open_github_link())
+
+        # Create the sunken label
+        self.label_middle = ttk.Label(self.status_bar, text="", relief=tk.SUNKEN)
+        self.label_middle.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Create the mouse coordinates label
+        self.coordinates = ttk.Label(self.status_bar, text="0 x 0", width=12, relief=tk.SUNKEN, anchor='center')
+        self.coordinates.pack(side=tk.RIGHT, padx=(0, 0))
+
+        # Create a mouse listener thread
+        self.mouse_listener_thread = threading.Thread(target=self.start_mouse_listener)
+        self.mouse_listener_thread.daemon = True
+        self.mouse_listener_thread.start()
+
+    def open_github_link(self):
+        # Open the GitHub link in a web browser
+        import webbrowser
+        webbrowser.open("https://github.com/jo-thomas-1/input_auto")
+
+    def start_mouse_listener(self):
+        # Start the mouse listener
+        mouse = Controller()
+        with Listener(on_move=self.update_mouse_coordinates) as coordinate_listener:
+            coordinate_listener.join()
+
+    def update_mouse_coordinates(self, x, y):
+        # Update the mouse coordinates in the status bar
+        self.coordinates.config(text="{} x {}".format(x, y))
         
     def setup_source_section(self, frame):
         source_frame = tk.LabelFrame(frame, text="Source", padx=10, pady=10)
