@@ -106,8 +106,7 @@ class InputAutoGUI:
         self.coordinates.pack(side=tk.RIGHT, padx=(0, 0))
 
         # Create a mouse listener thread
-        self.mouse_listener_thread = threading.Thread(target=self.start_mouse_listener)
-        self.mouse_listener_thread.daemon = True
+        self.mouse_listener_thread = threading.Thread(target=self.start_mouse_listener, daemon=True)
         self.mouse_listener_thread.start()
 
     def open_github_link(self):
@@ -248,8 +247,8 @@ class InputAutoGUI:
         self.root.update_idletasks()
 
         self.should_terminate = False  # Reset the termination flag
-        self.run_loop_thread = threading.Thread(target=self.run_loop, args=(count,))
-        self.keyboard_check_thread = threading.Thread(target=self.check_keyboard_press)
+        self.run_loop_thread = threading.Thread(target=self.run_loop, args=(count,), daemon=True)
+        self.keyboard_check_thread = threading.Thread(target=self.check_keyboard_press, daemon=True)
         self.keyboard_check_thread.start()
         self.run_loop_thread.start()
 
