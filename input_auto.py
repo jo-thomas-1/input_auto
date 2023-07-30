@@ -7,6 +7,7 @@ from pynput.keyboard import Listener as KeyboardListener, Controller as Keyboard
 import keyboard as kb_lib
 import threading
 import time
+import os
 
 class InputAutoGUI:
     def __init__(self, root):
@@ -382,6 +383,7 @@ class InputAutoGUI:
         self.edit_actions_window = tk.Toplevel(self.root)
         self.edit_actions_window.title("Edit Actions")
         self.edit_actions_window.resizable(False, True)
+        self.edit_actions_window.iconbitmap("icon.ico")
         
         # Disable interaction with the root window when "Edit Actions" is active
         self.edit_actions_window.grab_set()
@@ -446,4 +448,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = InputAutoGUI(root)
     root.resizable(False, False)
+    root.iconbitmap("icon.ico")
     root.mainloop()
