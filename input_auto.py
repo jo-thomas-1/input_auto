@@ -48,11 +48,12 @@ class InputAutoGUI:
         self.clear_button = tk.Button(button_frame, text="Clear", command=self.clear_actions, relief=tk.RAISED, compound=tk.LEFT)
         self.clear_button.pack(side=tk.LEFT, padx=5)
 
-        self.sync_button = tk.Button(button_frame, text="Sync Edits", command=self.sync_edited_actions, relief=tk.RAISED, compound=tk.LEFT)
-        self.sync_button.pack(side=tk.LEFT, padx=5)
+        self.edit_button = tk.Button(button_frame, text="Edit", command=self.edit_actions, relief=tk.RAISED, compound=tk.LEFT)
+        self.edit_button.pack(side=tk.LEFT, padx=5)
 
         self.text_area = tk.Text(self.root, height=10, width=50)
         self.text_area.pack(padx=10, pady=5, anchor=tk.W, fill=tk.X)
+        self.text_area.config(state="disabled")
 
         # Add Loop section
         loop_section = tk.LabelFrame(self.root, text="Loop", padx=10, pady=10)
@@ -174,6 +175,7 @@ class InputAutoGUI:
     def start_recording(self):
         self.is_recording = True
         self.recorded_actions = []
+        self.text_area.config(state="normal")
         self.text_area.delete('1.0', tk.END)
         
         self.mouse_listener = Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll)
@@ -198,6 +200,8 @@ class InputAutoGUI:
             self.recorded_actions.pop()
             self.recorded_actions.pop()
             self.update_text_area()
+
+        self.text_area.config(state="disabled")
         
     def on_move(self, x, y):
         if self.is_recording and self.available_devices['Mouse'].get():
@@ -228,11 +232,6 @@ class InputAutoGUI:
             
     def show_error_message(self, message):
         messagebox.showerror("Error", message)
-
-    def sync_edited_actions(self):
-        edited_content = self.text_area.get('1.0', tk.END).strip()
-        self.recorded_actions = edited_content.split('\n')
-        messagebox.showinfo("Information", "Input actions updated")
 
     def clear_actions(self):
         self.recorded_actions = []
@@ -329,16 +328,6 @@ class InputAutoGUI:
 
             self.current_action_var.set(action)
 
-            # if command.startswith('\\'):
-            #     # check and execute special command
-            #     if command == '\\pause':
-            #         try:
-            #             time.sleep(int(args))
-            #         except Exception as e:
-            #             print("Specified pause time value is invalid -", args)
-            #             time.sleep(0.1)
-            # else:
-
             if command == 'Click':
                 x, y = map(int, args.split(','))
                 mouse.position = (x, y)
@@ -388,6 +377,74 @@ class InputAutoGUI:
             self.mouse_listener.join()
             self.keyboard_listener.join()
         self.root.destroy()
+
+    # -------------------------------
+    # ----- Edit Actions Window -----
+    # -------------------------------
+
+    def edit_actions(self):
+        self.edit_actions_window = tk.Toplevel(self.root)
+        self.edit_actions_window.title("Edit Actions")
+        self.edit_actions_window.resizable(False, True)
+        
+        # Disable interaction with the root window when "Edit Actions" is active
+        self.edit_actions_window.grab_set()
+        self.edit_actions_window.transient(root)
+        self.edit_actions_window.geometry("+{}+{}".format(root.winfo_x() + 20, root.winfo_y() + 20))
+
+        self.actions_text_area = tk.Text(self.edit_actions_window, height=20, width=50)
+        self.actions_text_area.pack(padx=10, pady=5, anchor=tk.W, fill=tk.X)
+
+        self.actions_text_area.delete('1.0', tk.END)
+        for action in self.recorded_actions:
+            self.actions_text_area.insert(tk.END, action + '\n')
+
+        # button group
+        edit_acions_button_frame = tk.Frame(self.edit_actions_window)
+        edit_acions_button_frame.pack(pady=10, padx=10, anchor=tk.W)
+
+        save_edits_button = tk.Button(edit_acions_button_frame, text="Save", command=self.save_action_changes, relief=tk.RAISED, compound=tk.LEFT)
+        save_edits_button.pack(side=tk.LEFT, padx=5)
+
+        close_edits_button = tk.Button(edit_acions_button_frame, text="Close", command=self.close_action_changes, relief=tk.RAISED, compound=tk.LEFT)
+        close_edits_button.pack(side=tk.LEFT, padx=5)
+
+        self.edit_actions_window.focus_force()
+
+    def save_action_changes(self):
+        self.text_area.config(state="normal")
+        self.text_area.delete('1.0', tk.END)
+        edited_content = self.actions_text_area.get('1.0', tk.END).strip()
+        self.recorded_actions = edited_content.split('\n')
+        for action in self.recorded_actions:
+            self.text_area.insert(tk.END, action + '\n')
+        self.text_area.config(state="disabled")
+        messagebox.showinfo("Information", "Input actions updated")
+
+    def changes_saved(self):
+        edited_content = self.actions_text_area.get('1.0', tk.END).strip()
+        temp_actions = edited_content.split('\n')
+
+        if len(temp_actions) != len(self.recorded_actions):
+            return False
+
+        for i in range(len(temp_actions)):
+            if temp_actions[i] != self.recorded_actions[i]:
+                return False
+
+        return True
+
+    def close_action_changes(self):
+        # check for unsaved changes
+        if not self.changes_saved():
+            if messagebox.askyesno("Warning: Unsaved Changes", "You have unsaved changes. If you close now, the changes will be lost. Are you sure you want to close?"):
+                self.edit_actions_window.destroy()
+        else:
+            self.edit_actions_window.destroy()
+
+# ---------------------
+# ----- Main Call -----
+# ---------------------
 
 if __name__ == "__main__":
     root = tk.Tk()
