@@ -315,7 +315,7 @@ class InputAutoGUI:
             if len(components) < 2:
                 continue
 
-            command = components[0].strip()
+            command = components[0].strip().lower()
             args = components[1].strip()
 
             for component in components:
@@ -324,23 +324,23 @@ class InputAutoGUI:
 
             self.current_action_var.set(action)
 
-            if command == 'Click':
+            if command == 'click':
                 x, y = map(int, args.split(','))
                 mouse.position = (x, y)
                 mouse.click(Button.left)
-            elif command == 'Release':
+            elif command == 'release':
                 x, y = map(int, args.split(','))
                 mouse.position = (x, y)
                 mouse.release(Button.left)
-            elif command == 'Scroll Up':
+            elif command == 'scroll up':
                 x, y = map(int, args.split(','))
                 mouse.position = (x, y)
                 mouse.scroll(0, -1)
-            elif command == 'Scroll Down':
+            elif command == 'scroll down':
                 x, y = map(int, args.split(','))
                 mouse.position = (x, y)
                 mouse.scroll(0, 1)
-            elif command == 'Key Press':
+            elif command == 'key press':
                 if args.startswith('<') and args.endswith('>'):
                     special_key = KeyCode.from_vk(int(args[1:-1]))
                     keyboard.press(special_key)
