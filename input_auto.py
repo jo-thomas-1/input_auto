@@ -225,11 +225,6 @@ class InputAutoGUI:
             self.recorded_actions.append(f"Key Press - {key}")
             self.update_text_area()
             
-    def update_text_area(self):
-        self.text_area.delete('1.0', tk.END)
-        for action in self.recorded_actions:
-            self.text_area.insert(tk.END, action + '\n')
-            
     def show_error_message(self, message):
         messagebox.showerror("Error", message)
 
@@ -242,9 +237,11 @@ class InputAutoGUI:
         self.current_action_var.set("NULL")
 
     def update_text_area(self):
+        self.text_area.config(state="normal")
         self.text_area.delete('1.0', tk.END)
         for action in self.recorded_actions:
             self.text_area.insert(tk.END, action + '\n')
+        self.text_area.config(state="disabled")
 
     def start_loop(self):
         # disable loop button to avoid multiple loop threads
