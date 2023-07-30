@@ -329,41 +329,56 @@ class InputAutoGUI:
 
             self.current_action_var.set(action)
 
-            if command.startswith('\\'):
-                # check and execute special command
-                continue
-            else:
-                if command == 'Click':
-                    x, y = map(int, args.split(','))
-                    mouse.position = (x, y)
-                    mouse.click(Button.left)
-                elif command == 'Release':
-                    x, y = map(int, args.split(','))
-                    mouse.position = (x, y)
-                    mouse.release(Button.left)
-                elif command == 'Scroll Up':
-                    x, y = map(int, args.split(','))
-                    mouse.position = (x, y)
-                    mouse.scroll(0, -1)
-                elif command == 'Scroll Down':
-                    x, y = map(int, args.split(','))
-                    mouse.position = (x, y)
-                    mouse.scroll(0, 1)
-                elif command == 'Key Press':
-                    if args.startswith('<') and args.endswith('>'):
-                        special_key = KeyCode.from_vk(int(args[1:-1]))
-                        keyboard.press(special_key)
-                        keyboard.release(special_key)
-                    elif args.startswith('Key.'):
-                        keyboard.press(eval(args))
-                        keyboard.release(eval(args))
-                    # Add more special key cases as needed
-                    else:
-                        # Handle normal characters
-                        try:
-                            keyboard.type(args[1])
-                        except Exception as e:
-                            keyboard.type('-')
+            # if command.startswith('\\'):
+            #     # check and execute special command
+            #     if command == '\\pause':
+            #         try:
+            #             time.sleep(int(args))
+            #         except Exception as e:
+            #             print("Specified pause time value is invalid -", args)
+            #             time.sleep(0.1)
+            # else:
+
+            if command == 'Click':
+                x, y = map(int, args.split(','))
+                mouse.position = (x, y)
+                mouse.click(Button.left)
+            elif command == 'Release':
+                x, y = map(int, args.split(','))
+                mouse.position = (x, y)
+                mouse.release(Button.left)
+            elif command == 'Scroll Up':
+                x, y = map(int, args.split(','))
+                mouse.position = (x, y)
+                mouse.scroll(0, -1)
+            elif command == 'Scroll Down':
+                x, y = map(int, args.split(','))
+                mouse.position = (x, y)
+                mouse.scroll(0, 1)
+            elif command == 'Key Press':
+                if args.startswith('<') and args.endswith('>'):
+                    special_key = KeyCode.from_vk(int(args[1:-1]))
+                    keyboard.press(special_key)
+                    keyboard.release(special_key)
+                elif args.startswith('Key.'):
+                    keyboard.press(eval(args))
+                    keyboard.release(eval(args))
+                else:
+                    # Handle normal characters
+                    try:
+                        keyboard.type(args[1])
+                    except Exception as e:
+                        keyboard.type('-')
+            # special commands
+            elif command == 'pause':
+                try:
+                    for i in range(int(args)):
+                        temp = action + " [" + str(i + 1) + " / " + args + "]"
+                        self.current_action_var.set(temp)
+                        time.sleep(1)
+                except Exception as e:
+                    print("Specified pause time value is invalid -", args)
+                    time.sleep(0.1)
 
             time.sleep(0.1)
 
