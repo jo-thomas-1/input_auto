@@ -87,6 +87,16 @@ class InputAutoGUI:
         remaining_loops_value = tk.Label(row3, textvariable=self.remaining_loops_var)
         remaining_loops_value.pack(side=tk.LEFT)
 
+        # Row 4: Current Action
+        row4 = tk.Frame(loop_section)
+        row4.pack(padx=10, pady=2, anchor=tk.W)
+        self.current_action_var = tk.StringVar()
+        self.current_action_var.set("NULL")
+        current_action_label = tk.Label(row4, text="Current Action: ")
+        current_action_label.pack(side=tk.LEFT)
+        current_action_value = tk.Label(row4, textvariable=self.current_action_var)
+        current_action_value.pack(side=tk.LEFT)
+
         # Create the status bar
         self.status_bar = ttk.Frame(root, relief=tk.FLAT)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -230,6 +240,7 @@ class InputAutoGUI:
 
         self.current_loop_var.set(0)
         self.remaining_loops_var.set(0)
+        self.current_action_var.set("NULL")
 
     def update_text_area(self):
         self.text_area.delete('1.0', tk.END)
@@ -315,6 +326,8 @@ class InputAutoGUI:
             for component in components:
                 print(component, end="")
             print("\n", end="")
+
+            self.current_action_var.set(action)
 
             if command.startswith('\\'):
                 # check and execute special command
