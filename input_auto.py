@@ -283,8 +283,7 @@ class InputAutoGUI:
                 break
 
     def run_loop(self, count):
-        messagebox.showwarning("Warning", "Starting input loop execution. Please avoid using input devices \
-            until loop completion. Press the Escape (Esc) key to exit the loop.")
+        messagebox.showwarning("Warning", "Starting input loop execution. Please avoid using input devices until loop completion. Press the Escape (Esc) key to exit the loop.")
 
         print("executing loop")
 
